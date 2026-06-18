@@ -1,1 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不動產案例稅賦分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --radius:14px;
+    --shadow:0 8px 24px rgba(20,30,48,.10);
+    --shadow-lg:0 16px 44px rgba(20,30,48,.16);
+  }
+  /* ---------- LIGHT (report) ---------- */
+  [data-theme="light"]{
+    --bg:#f3f1ea; --bg2:#ece8dd; --panel:#ffffff; --panel2:#faf8f3;
+    --line:#e4e0d4; --line2:#d8d3c4;
+    --txt:#1b2433; --muted:#5e6b7c; --soft:#8a93a0;
+    --ink:#1f3a5f; --ink2:#2c5183; --gold:#b0863a; --gold2:#caa253;
+    --good:#1f7a4d; --good-bg:#e2f1e8; --warn:#b9821f; --bad:#bb4534;
+    --chartgrid:#e9e5da; --deriv:#e7eef8; --lockbg:#f0ece2;
+    --gift1:#e9f1fa; --gift2:#fbfdff; --giftk:#1f3a5f;
+    --leg1:#f8efd9; --leg2:#fffdf8; --legk:#9a6f23;
+  }
+  /* ---------- DARK (screen) ---------- */
+  [data-theme="dark"]{
+    --bg:#0e1622; --bg2:#0b121c; --panel:#16212e; --panel2:#1b2735;
+    --line:#293a4d; --line2:#34495f;
+    --txt:#e9eef5; --muted:#94a6ba; --soft:#6e8197;
+    --ink:#5b9bd8; --ink2:#7db1e6; --gold:#d8b24f; --gold2:#e6c878;
+    --good:#36c98a; --good-bg:rgba(54,201,138,.14); --warn:#e0a93b; --bad:#ef5b4c;
+    --chartgrid:#27384a; --deriv:rgba(91,155,216,.16); --lockbg:rgba(255,255,255,.04);
+    --gift1:rgba(91,155,216,.20); --gift2:rgba(91,155,216,.03); --giftk:#7db1e6;
+    --leg1:rgba(216,178,79,.18); --leg2:rgba(216,178,79,.03); --legk:#e6c878;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+       background:
+         radial-gradient(1200px 500px at 80% -10%, var(--bg2), transparent 60%),
+         var(--bg);
+       color:var(--txt);min-height:100vh;-webkit-font-smoothing:antialiased;
+       transition:background .4s,color .4s}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px 22px 70px}
+  .hidden{display:none!important}
+  a{color:inherit}
 
+  /* top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;
+          padding:10px 0;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .brand .name{font-size:14px;letter-spacing:3px;color:var(--gold);font-weight:700}
+  .brand .ver{font-size:11px;color:var(--soft)}
+  .controls{display:flex;gap:8px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);
+       color:var(--txt);padding:8px 13px;border-radius:10px;cursor:pointer;font-size:12.5px;
+       transition:.18s;font-family:inherit}
+  .btn:hover{border-color:var(--ink);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.primary:hover{background:var(--ink2)}
+  .btn svg{width:15px;height:15px}
+
+  h1{font-size:27px;margin:6px 0 2px;font-weight:800;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:13.5px;margin-bottom:22px}
+
+  /* HOME */
+  .home-hero{margin:22px 0 34px;text-align:center}
+  .hh-eyebrow{color:var(--gold);font-size:12.5px;letter-spacing:3px;font-weight:700;margin-bottom:14px;
+        display:inline-flex;align-items:center;gap:11px}
+  .hh-eyebrow .hh-line{width:30px;height:2px;background:var(--gold);display:inline-block}
+  .hh-title{font-size:40px;font-weight:900;letter-spacing:3px;margin:0 0 14px;
+        background:linear-gradient(120deg,var(--ink),var(--gold));-webkit-background-clip:text;
+        background-clip:text;-webkit-text-fill-color:transparent}
+  .hh-sub{color:var(--muted);font-size:14.5px;max-width:640px;margin:0 auto;line-height:1.75}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:6px}
+  @media(max-width:780px){.cards{grid-template-columns:1fr}.hh-title{font-size:30px;letter-spacing:1px}}
+  .card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:24px;
+        padding:30px 30px 26px;cursor:pointer;box-shadow:var(--shadow);min-height:328px;
+        display:flex;flex-direction:column;outline:none;
+        transition:transform .28s cubic-bezier(.2,.7,.25,1),box-shadow .28s,border-color .28s}
+  .card::before{content:"";position:absolute;left:0;top:0;right:0;height:6px;background:var(--c)}
+  .card.gift{background:linear-gradient(162deg,var(--gift1),var(--gift2)),var(--panel);--c:var(--giftk)}
+  .card.legacy{background:linear-gradient(162deg,var(--leg1),var(--leg2)),var(--panel);--c:var(--legk)}
+  .card:hover,.card:focus-visible{transform:translateY(-8px);box-shadow:0 26px 56px rgba(20,30,48,.22);border-color:var(--c)}
+  .card-wm{position:absolute;right:-10px;bottom:-50px;font-size:215px;font-weight:900;line-height:1;
+        color:var(--c);opacity:.09;pointer-events:none;user-select:none;
+        transition:transform .45s cubic-bezier(.2,.7,.25,1),opacity .3s}
+  .card:hover .card-wm{transform:scale(1.07) rotate(-3deg);opacity:.14}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;position:relative;z-index:1}
+  .card-no{font-size:11.5px;font-weight:800;letter-spacing:1px;color:var(--c);
+        border:1.5px solid var(--c);padding:4px 12px;border-radius:20px}
+  .card-ic{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;
+        background:var(--c);color:#fff;box-shadow:0 10px 22px rgba(0,0,0,.20)}
+  .card-ic svg{width:32px;height:32px}
+  .card-title{font-size:27px;font-weight:900;letter-spacing:2px;margin:0 0 3px;position:relative;z-index:1}
+  .card-tag{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--soft);
+        font-weight:700;margin-bottom:14px;position:relative;z-index:1}
+  .card-desc{color:var(--muted);font-size:13.5px;line-height:1.8;margin:0 0 18px;position:relative;z-index:1;flex:1}
+  .card-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;position:relative;z-index:1}
+  .card-chips span{font-size:11.5px;font-weight:700;color:var(--c);background:var(--panel);
+        border:1px solid var(--line2);padding:5px 11px;border-radius:8px}
+  .card-cta{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:800;
+        color:#fff;background:var(--c);padding:11px 22px;border-radius:12px;position:relative;z-index:1;
+        box-shadow:0 8px 18px rgba(0,0,0,.16);transition:gap .25s,box-shadow .25s}
+  .card:hover .card-cta{gap:13px;box-shadow:0 13px 26px rgba(0,0,0,.24)}
+  .card-cta .arr{transition:transform .25s}
+  .card:hover .card-cta .arr{transform:translateX(4px)}
+
+  /* layout (inputs on top, results below) */
+  .back{margin-bottom:16px}
+  .calcbody{display:flex;flex-direction:column;gap:22px}
+  .layout{display:grid;grid-template-columns:330px 1fr;gap:24px;align-items:start}
+  @media(max-width:920px){.layout{grid-template-columns:1fr}}
+
+  /* Excel-like input table */
+  .xinput h3{margin-bottom:12px}
+  .x-hint{font-weight:400;font-size:11px;color:var(--soft);margin-left:8px}
+  .xtable{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed}
+  .xtable th,.xtable td{border:1px solid var(--line2);padding:0;text-align:center}
+  .xtable thead th{background:var(--panel2);color:var(--ink);font-weight:700;padding:9px 8px;font-size:12.5px}
+  .xtable td.cat{background:var(--panel2);color:var(--txt);font-weight:800;font-size:12.5px;width:78px;letter-spacing:1px}
+  .xtable td.rl{text-align:left;padding:9px 13px;color:var(--muted);background:var(--panel2);white-space:nowrap;font-size:12.5px}
+  .xtable td.xin{background:var(--panel);padding:0}
+  .xtable td.xin input{width:100%;border:none;background:transparent;text-align:right;padding:10px 13px;
+       font-size:14.5px;font-variant-numeric:tabular-nums;color:var(--txt);font-family:inherit;font-weight:600}
+  .xtable td.xin input:focus{outline:2px solid var(--ink);outline-offset:-2px;background:var(--good-bg)}
+  .xtable td.xin input::-webkit-outer-spin-button,.xtable td.xin input::-webkit-inner-spin-button{opacity:.35}
+  .xtable td.xderiv{background:var(--deriv);color:var(--ink);font-weight:700;padding:10px 13px;
+       text-align:right;font-variant-numeric:tabular-nums}
+  .xtable td.xlock{background:var(--lockbg);color:var(--soft);font-size:11.5px;padding:8px 10px}
+  .xtable td.xna{background:var(--lockbg);color:var(--soft);text-align:center}
+  .xfoot{display:flex;align-items:center;gap:14px;margin-top:13px;flex-wrap:wrap}
+  .note-inline{font-size:11.5px;color:var(--muted);line-height:1.6;flex:1;min-width:200px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+         padding:18px;box-shadow:var(--shadow)}
+  .inputs{position:sticky;top:14px}
+  @media(max-width:920px){.inputs{position:static}}
+  .panel h3{margin:0 0 14px;font-size:14px;display:flex;align-items:center;gap:8px;letter-spacing:.5px}
+  .panel h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+  .field{margin-bottom:11px}
+  .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .inp{position:relative}
+  .inp input{width:100%;background:var(--panel2);border:1px solid var(--line2);color:var(--txt);
+       border-radius:9px;padding:8px 34px 8px 11px;font-size:14px;font-variant-numeric:tabular-nums;
+       font-family:inherit;transition:.15s}
+  .inp input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px var(--good-bg)}
+  .inp .unit{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--soft);pointer-events:none}
+  .colhead{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:var(--ink);
+           font-weight:700;margin:2px 0 5px}
+  .fixed-params{font-size:11.5px;color:var(--muted);background:var(--panel2);border:1px dashed var(--line2);
+       border-radius:9px;padding:9px 11px;margin-top:4px;display:flex;align-items:center;gap:7px}
+  .fixed-params::before{content:"🔒";font-size:12px}
+  .fixed-params b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .note{font-size:11px;color:var(--muted);line-height:1.7;margin-top:12px;border-top:1px dashed var(--line2);padding-top:11px}
+  .panel-actions{display:flex;gap:8px;margin-top:14px}
+  .panel-actions .btn{flex:1;justify-content:center}
+
+  .results{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+         padding:20px;box-shadow:var(--shadow)}
+  .block h3{margin:0 0 4px;font-size:15px;letter-spacing:.5px}
+  .block .h-sub{color:var(--soft);font-size:11.5px;margin-bottom:14px}
+
+  /* conclusion */
+  .conclusion{background:
+        linear-gradient(120deg,var(--panel2),var(--panel));
+        border:1px solid var(--line);border-left:4px solid var(--gold);
+        border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+  .conclusion .badge{display:inline-block;background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+        letter-spacing:1px;padding:4px 11px;border-radius:20px;margin-bottom:12px}
+  .conclusion .big{font-size:22px;font-weight:800;margin-bottom:10px;line-height:1.3}
+  .conclusion .line{font-size:14px;color:var(--muted);line-height:1.85}
+  .conclusion .line b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .good{color:var(--good)!important}
+  .bad{color:var(--bad)!important}
+
+  /* tables */
+  .tbl-wrap{overflow-x:auto;margin:0 -2px}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  th,td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--ink);font-weight:700;font-size:12px;border-bottom:2px solid var(--line2);position:relative}
+  td.label{color:var(--muted)}
+  tbody tr:hover td{background:var(--panel2)}
+  td.heat{border-radius:0;font-weight:600}
+  td.bestcell{font-weight:800}
+  .badge-best{font-size:10px;color:var(--good);font-weight:800;margin-left:3px}
+  .totalrow td{border-top:2px solid var(--line2);font-weight:800;font-size:13.5px}
+  .fade-in{animation:fadeIn .35s ease}
+  @keyframes fadeIn{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+  /* segmented */
+  .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line2);border-radius:11px;
+       padding:3px;margin-bottom:16px;flex-wrap:wrap;gap:2px}
+  .seg button{background:transparent;border:none;color:var(--muted);padding:7px 14px;border-radius:8px;
+       cursor:pointer;font-size:12.5px;font-family:inherit;transition:.18s;font-weight:600}
+  .seg button.on{background:var(--ink);color:#fff;box-shadow:var(--shadow)}
+
+  /* kpis */
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:680px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .kpi .t{font-size:11.5px;color:var(--muted);margin-bottom:7px}
+  .kpi .v{font-size:23px;font-weight:800}
+  .kpi .v small{font-size:12px;color:var(--soft);font-weight:500}
+  .share-note{font-size:12px;color:var(--muted);margin-top:12px}
+
+  .chartbox{position:relative;height:300px}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.twocol{grid-template-columns:1fr}}
+  details.info{margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);overflow:hidden}
+  details.info summary{cursor:pointer;padding:11px 14px;font-size:13px;font-weight:600;color:var(--ink);list-style:none}
+  details.info summary::-webkit-details-marker{display:none}
+  details.info summary::before{content:"▸ ";color:var(--gold)}
+  details.info[open] summary::before{content:"▾ "}
+  details.info .body{padding:4px 16px 14px;font-size:12.5px;color:var(--muted);line-height:1.8}
+  details.info .body ol{margin:6px 0;padding-left:20px}
+
+  .footer{margin-top:36px;text-align:center;font-size:11px;color:var(--soft);line-height:1.9;
+          border-top:1px solid var(--line);padding-top:18px}
+  .small{font-size:11.5px;color:var(--muted)}
+
+  /* toast */
+  #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+         background:var(--ink);color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;
+         box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.3s;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .print-only{display:none}
+
+  /* entrance */
+  .enter{opacity:0;transform:translateY(14px);animation:enterUp .5s forwards}
+  @keyframes enterUp{to{opacity:1;transform:none}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  }
+
+  /* ---------- PRINT ---------- */
+  @media print{
+    @page{margin:14mm}
+    html,body{background:#fff!important;color:#000}
+    .wrap{max-width:none;padding:0}
+    .topbar,.back,.controls,.panel-actions,.seg,#toast{display:none!important}
+    .inputs{position:static}
+    .print-only{display:block}
+    .layout{grid-template-columns:1fr;gap:14px}
+    .block,.panel,.conclusion,.card{box-shadow:none!important;border:1px solid #ccc;break-inside:avoid}
+    .chartbox{height:260px}
+    details.info[open] .body,details.info .body{display:block}
+    details.info{break-inside:avoid}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    .print-head{margin-bottom:14px;border-bottom:2px solid #1f3a5f;padding-bottom:8px}
+    .print-head .pt{font-size:20px;font-weight:800;color:#1f3a5f}
+    .print-head .pm{font-size:12px;color:#555;margin-top:3px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <span class="name">齊名揚老師編著</span>
+      <span class="ver">不動產稅賦分析 · 114.11 版</span>
+    </div>
+    <div class="controls">
+      <button class="btn" id="shareBtn" onclick="shareLink()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+        分享連結
+      </button>
+      <button class="btn" id="printBtn" onclick="exportPDF()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+        匯出 PDF
+      </button>
+      <button class="btn" id="themeBtn" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span><span id="themeLabel">深色</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <section id="home">
+    <div class="home-hero">
+      <div class="hh-eyebrow"><span class="hh-line"></span>不動產傳承與贈與 · 稅務試算<span class="hh-line"></span></div>
+      <h1 class="hh-title">不動產案例稅賦分析</h1>
+      <div class="hh-sub">選擇要試算的規劃情境，即時計算各方案的稅負與財產分配，並可一鍵匯出客戶簡報。</div>
+    </div>
+    <div class="cards">
+      <div class="card gift enter" style="animation-delay:.06s" role="button" tabindex="0"
+           onclick="go('calc-gift')" onkeydown="if(event.key==='Enter'||event.key===' ')go('calc-gift')">
+        <div class="card-wm">贈</div>
+        <div class="card-head">
+          <span class="card-no">計算機 ①</span>
+          <div class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9"/><path d="M2 7.5h20V12H2z"/><path d="M12 21V7.5"/><path d="M12 7.5S11 2.5 8 2.5 5 5 5 5s1.5 2.5 7 2.5"/><path d="M12 7.5s1-5 4-5 3 2.5 3 2.5-1.5 2.5-7 2.5"/></svg></div>
+        </div>
+        <h2 class="card-title">父母贈與房地產</h2>
+        <div class="card-tag">Gift of Property</div>
+        <p class="card-desc">比較 6 種贈與方式，依不同持有年限（2年內／2–5年／5–10年／超過10年），算出贈與稅、房地合一稅與土增稅的總稅負，找出最省稅方案。</p>
+        <div class="card-chips"><span>6 種贈與方式</span><span>4 段持有年限</span><span>最省稅建議</span></div>
+        <div class="card-cta">進入計算機 <span class="arr">→</span></div>
+      </div>
+      <div class="card legacy enter" style="animation-delay:.14s" role="button" tabindex="0"
+           onclick="go('calc-legacy')" onkeydown="if(event.key==='Enter'||event.key===' ')go('calc-legacy')">
+        <div class="card-wm">傳</div>
+        <div class="card-head">
+          <span class="card-no">計算機 ②</span>
+          <div class="card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="5" rx="1.2"/><rect x="2.5" y="16.5" width="6" height="5" rx="1.2"/><rect x="15.5" y="16.5" width="6" height="5" rx="1.2"/><path d="M12 7.5v3.5M5.5 16.5V13h13v3.5M12 11v2"/></svg></div>
+        </div>
+        <h2 class="card-title">特定傳承規劃</h2>
+        <div class="card-tag">Legacy Planning</div>
+        <p class="card-desc">將財產傳承給某特定子女，比較「生前贈與 vs 死後繼承」在單純傳承、考慮出售、傳承規劃三種情境下的總稅負與各人實得財產比例。</p>
+        <div class="card-chips"><span>生前贈與 vs 死後繼承</span><span>3 種傳承情境</span><span>財產分配比例</span></div>
+        <div class="card-cta">進入計算機 <span class="arr">→</span></div>
+      </div>
+    </div>
+    <div class="footer">**齊名揚老師編著，僅供教育訓練使用，僅供參考，未經授權請勿翻印使用**</div>
+  </section>
+
+  <!-- ============ GIFT ============ -->
+  <section id="calc-gift" class="hidden">
+    <button class="btn back" onclick="go('home')">← 回首頁</button>
+    <div class="print-head print-only"><div class="pt">父母贈與房地產稅賦分析</div><div class="pm" id="g_print_meta"></div></div>
+    <h1>父母贈與房地產稅賦分析</h1>
+    <div class="sub">父母採分別平均贈與　·　單位：萬元</div>
+    <div class="calcbody">
+      <div class="block xinput">
+        <h3><span class="dot"></span>輸入條件<span class="x-hint">白底＝可輸入｜灰底＝法定固定值｜「—」不適用</span></h3>
+        <div class="tbl-wrap"><table class="xtable">
+          <colgroup><col style="width:78px"><col><col style="width:29%"><col style="width:29%"></colgroup>
+          <thead><tr><th></th><th>項目（萬元）</th><th>取得</th><th>出售</th></tr></thead>
+          <tbody>
+            <tr><td class="cat" rowspan="3">房地產</td><td class="rl">市價</td>
+              <td class="xin"><input type="number" id="g_mkt_buy"></td>
+              <td class="xin"><input type="number" id="g_mkt_sell"></td></tr>
+            <tr><td class="rl">土地公告現值</td>
+              <td class="xin"><input type="number" id="g_land_buy"></td>
+              <td class="xin"><input type="number" id="g_land_sell"></td></tr>
+            <tr><td class="rl">房屋評定現值</td>
+              <td class="xin"><input type="number" id="g_house_buy"></td>
+              <td class="xin"><input type="number" id="g_house_sell"></td></tr>
+            <tr><td class="cat">　</td><td class="rl">貸款上限</td>
+              <td class="xin"><input type="number" id="g_loan"></td><td class="xna">—</td></tr>
+            <tr><td class="cat">　</td><td class="rl">取得與改良費用</td>
+              <td class="xin"><input type="number" id="g_cost"></td><td class="xna"></td></tr>
+            <tr><td class="cat">　</td><td class="rl">移轉費用</td>
+              <td class="xlock">部頒費率 3% · 上限 30 萬</td>
+              <td class="xin"><input type="number" id="g_movfix"></td></tr>
+            <tr><td class="cat">　</td><td class="rl">贈與人數</td>
+              <td class="xin"><input type="number" id="g_donors"></td><td class="xna">—</td></tr>
+          </tbody>
+        </table></div>
+        <div class="xfoot">
+          <button class="btn" onclick="resetInputs('gift')">回復預設</button>
+          <span class="note-inline">假設：贈與人當年度均無其他贈與。贈與稅免稅額 244 萬／人。</span>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="conclusion" id="g_conclusion">
+          <span class="badge">建議方案</span>
+          <div class="big"><span id="g_best_strat">—</span></div>
+          <div class="line">於<b id="g_best_period">—</b>的條件下，總稅負為 <b id="g_best_total">—</b> 萬元，
+          較最高方案省下 <b id="g_save" class="good">—</b> 萬元。</div>
+        </div>
+
+        <div class="block">
+          <h3>總稅負比較</h3>
+          <div class="h-sub">依持有年限切換；色塊由綠（低）到紅（高），✓ 為各持有年限最省方案。</div>
+          <div class="seg" id="g_seg"></div>
+          <div class="tbl-wrap"><table id="g_total_tbl"></table></div>
+        </div>
+
+        <div class="block">
+          <h3>各方案總稅負</h3>
+          <div class="h-sub" id="g_chart_sub">長條圖（目前持有年限）</div>
+          <div class="chartbox"><canvas id="g_chart"></canvas></div>
+        </div>
+
+        <div class="block">
+          <h3>稅負組成明細</h3>
+          <div class="h-sub">目前持有年限下，各方案的贈與稅、房地合一稅與土增稅拆解。</div>
+          <div class="tbl-wrap"><table id="g_detail_tbl"></table></div>
+          <details class="info"><summary>六種贈與方式說明</summary>
+            <div class="body"><ol id="g_strat_list"></ol></div></details>
+        </div>
+      </div>
+    </div>
+    <div class="footer">**齊名揚老師編著，僅供教育訓練使用，僅供參考，未經授權請勿翻印使用**</div>
+  </section>
+
+  <!-- ============ LEGACY ============ -->
+  <section id="calc-legacy" class="hidden">
+    <button class="btn back" onclick="go('home')">← 回首頁</button>
+    <div class="print-head print-only"><div class="pt">特定傳承與稅賦分析</div><div class="pm" id="l_print_meta"></div></div>
+    <h1>特定傳承與稅賦分析</h1>
+    <div class="sub" id="l_subtitle">擬將財產傳承於某特定子女　·　單位：萬元</div>
+    <div class="calcbody">
+      <div class="block xinput">
+        <h3><span class="dot"></span>輸入條件<span class="x-hint">白底＝可輸入｜藍底＝自動計算｜灰底＝法定固定值</span></h3>
+        <div class="tbl-wrap"><table class="xtable">
+          <colgroup><col style="width:78px"><col><col style="width:29%"><col style="width:29%"></colgroup>
+          <thead><tr><th></th><th>項目（萬元）</th><th>贈與或繼承</th><th>出售</th></tr></thead>
+          <tbody>
+            <tr><td class="cat" rowspan="6">房地產</td><td class="rl">市價</td>
+              <td class="xin"><input type="number" id="l_mkt"></td>
+              <td class="xin"><input type="number" id="l_mkt_sell"></td></tr>
+            <tr><td class="rl">土地公告現值</td>
+              <td class="xin"><input type="number" id="l_land"></td>
+              <td class="xin"><input type="number" id="l_land_sell"></td></tr>
+            <tr><td class="rl">土地前次移轉現值</td>
+              <td class="xin"><input type="number" id="l_landprev"></td>
+              <td class="xderiv" id="l_landprev_sell">—</td></tr>
+            <tr><td class="rl">房屋評定現值</td>
+              <td class="xin"><input type="number" id="l_house"></td>
+              <td class="xin"><input type="number" id="l_house_sell"></td></tr>
+            <tr><td class="rl">取得與改良費用</td>
+              <td class="xin"><input type="number" id="l_cost"></td><td class="xna"></td></tr>
+            <tr><td class="rl">移轉費用</td>
+              <td class="xlock">部頒費率 3% · 上限 30 萬</td>
+              <td class="xin"><input type="number" id="l_movfix"></td></tr>
+            <tr><td class="cat" rowspan="2">總財產</td><td class="rl">市價</td>
+              <td class="xderiv" id="l_tot_mkt_buy">—</td>
+              <td class="xderiv" id="l_tot_mkt_sell">—</td></tr>
+            <tr><td class="rl">時價</td>
+              <td class="xderiv" id="l_tot_val_buy">—</td>
+              <td class="xderiv" id="l_tot_val_sell">—</td></tr>
+            <tr><td class="cat">　</td><td class="rl">貸款上限</td>
+              <td class="xna">—</td>
+              <td class="xin"><input type="number" id="l_loan_sell"></td></tr>
+            <tr><td class="cat" rowspan="2">繼承人</td><td class="rl">配偶</td>
+              <td class="xin"><input type="number" id="l_spouse"></td><td class="xna">—</td></tr>
+            <tr><td class="rl">直系血親卑親屬</td>
+              <td class="xin"><input type="number" id="l_child"></td><td class="xna">—</td></tr>
+            <tr><td class="cat">　</td><td class="rl">遺產稅免稅額與扣除額</td>
+              <td class="xderiv" id="l_estate_exempt">—</td><td class="xna">—</td></tr>
+            <tr><td class="cat">　</td><td class="rl">贈與稅免稅額與扣除額</td>
+              <td class="xlock">244</td><td class="xna">—</td></tr>
+          </tbody>
+        </table></div>
+        <div class="xfoot">
+          <button class="btn" onclick="resetInputs('legacy')">回復預設</button>
+          <span class="note-inline">遺產免稅+扣除 = 1333 + 配偶×553 + 子女×56 + 138（喪葬）；贈與免稅額 244 萬。死後繼承配偶取得含應繼分與剩餘財產分配請求權。</span>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="conclusion" id="l_conclusion">
+          <span class="badge">傳承規劃效益</span>
+          <div class="big">傳承規劃可同時降低稅負並集中財產</div>
+          <div class="line">生前贈與路徑：規劃後總稅負 <b id="l_c_giftplan">—</b> 萬，較直接出售省 <b id="l_c_giftsave" class="good">—</b> 萬。</div>
+          <div class="line">死後繼承路徑：規劃後總稅負 <b id="l_c_inhplan">—</b> 萬，較直接出售省 <b id="l_c_inhsave" class="good">—</b> 萬，特定子女取得比例提升至 <b id="l_c_share" class="good">—</b>。</div>
+        </div>
+
+        <div class="block">
+          <h3>三種情境總稅負比較</h3>
+          <div class="h-sub">色塊由綠（低）到紅（高）；✓ 為該情境較省的傳承方式。</div>
+          <div class="tbl-wrap"><table id="l_total_tbl"></table></div>
+          <div class="chartbox" style="margin-top:16px"><canvas id="l_chart"></canvas></div>
+        </div>
+
+        <div class="twocol">
+          <div class="block"><h3>規劃效益（生前贈與）</h3><div class="h-sub">考慮出售 → 傳承規劃</div><div id="l_kpi_gift"></div></div>
+          <div class="block"><h3>規劃效益（死後繼承）</h3><div class="h-sub">考慮出售 → 傳承規劃</div><div id="l_kpi_inh"></div></div>
+        </div>
+
+        <div class="block">
+          <h3>財產分配（傳承規劃＋考慮出售）</h3>
+          <div class="h-sub">左：生前贈與　右：死後繼承。特定子女取得比例越高代表傳承越集中。</div>
+          <div class="twocol">
+            <div class="chartbox"><canvas id="l_pie_gift"></canvas></div>
+            <div class="chartbox"><canvas id="l_pie_inh"></canvas></div>
+          </div>
+          <details class="info"><summary>計算假設</summary><div class="body"><ol>
+            <li>擬將財產傳承於某特定子女。</li>
+            <li>贈與人當年度均無其他贈與。</li>
+            <li>死後繼承，配偶取得財產包含應繼分與行使配偶剩餘財產分配請求權所取得之財產。</li>
+            <li>取得費用不含贈與時受贈人所繳納之土增稅與契稅。</li>
+          </ol></div></details>
+        </div>
+      </div>
+    </div>
+    <div class="footer">**齊名揚老師編著，僅供教育訓練使用，僅供參考，未經授權請勿翻印使用**</div>
+  </section>
+
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MOV_RATE = 0.03;   // 部頒移轉費率（法定固定）
+const MOV_CAP  = 30;     // 移轉費用上限 30 萬（法定固定）
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value)||0;
+const fmt = n => { n=Math.round(n*10)/10; return n.toLocaleString('en-US',{maximumFractionDigits:1}); };
+
+/* ---------- storage (safe on file://) ---------- */
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+
+/* ---------- theme ---------- */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  $('themeIcon').textContent = t==='light'?'🌙':'☀️';
+  $('themeLabel').textContent = t==='light'?'深色':'淺色';
+  store('tax_theme',t);
+  if(currentView==='calc-gift') calcGift();
+  if(currentView==='calc-legacy') calcLegacy();
+}
+function toggleTheme(){ applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'); }
+function theme(){ return document.documentElement.getAttribute('data-theme'); }
+
+/* ---------- count-up ---------- */
+function animateValue(el,to){
+  const from = el._cur;
+  el._cur = to;
+  if(RM || from===undefined || from===to){ el.textContent=fmt(to); return; }
+  const t0=performance.now(), dur=550;
+  function step(t){
+    const p=Math.min((t-t0)/dur,1), e=1-Math.pow(1-p,3);
+    el.textContent=fmt(from+(to-from)*e);
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ---------- heat color (0 best/green .. 1 worst/red) ---------- */
+function heat(t){
+  t=Math.max(0,Math.min(1,t));
+  const hue=(1-t)*125;
+  if(theme()==='light') return {bg:`hsl(${hue} 62% 90%)`, fg:`hsl(${hue} 48% 26%)`};
+  return {bg:`hsla(${hue},58%,48%,.22)`, fg:`hsl(${hue} 65% 78%)`};
+}
+function heatCell(v,min,max){
+  const t = max>min ? (v-min)/(max-min) : 0;
+  const c = heat(t);
+  return `style="background:${c.bg};color:${c.fg}"`;
+}
+
+/* ---------- view routing ---------- */
+let currentView='home';
+function go(id){
+  const run=()=>{
+    ['home','calc-gift','calc-legacy'].forEach(s=>$(s).classList.add('hidden'));
+    $(id).classList.remove('hidden');
+    currentView=id;
+    const calc = id!=='home';
+    $('shareBtn').style.display = calc?'inline-flex':'none';
+    $('printBtn').style.display = calc?'inline-flex':'none';
+    window.scrollTo(0,0);
+    if(id==='calc-gift') calcGift();
+    if(id==='calc-legacy') calcLegacy();
+    syncURL();
+  };
+  if(!RM && document.startViewTransition) document.startViewTransition(run); else run();
+}
+
+/* ---------- tax helpers ---------- */
+function giftTax(net){
+  if(net>=5621) return (net-5621)*0.2+2810*0.15+2811*0.1;
+  if(net>=2811) return (net-2811)*0.15+2811*0.1;
+  if(net>=0)    return net*0.1;
+  return 0;
+}
+function estateTax(b){
+  if(b>=11242) return (b-11242)*0.2+5621*0.25;
+  if(b>=5621)  return (b-5621)*0.15+5621*0.1;
+  if(b>=0)     return b*0.1;
+  return 0;
+}
+function landTax(now,prev){
+  if(prev<=0) return 0;
+  const r=now/prev;
+  if(r>=3) return now*0.4-prev*0.7;
+  if(r>=2) return now*0.3-prev*0.4;
+  if(r>=1) return (now-prev)*0.2;
+  return 0;
+}
+
+/* =================== GIFT =================== */
+let gChart=null, gPeriod=0;
+const G_PERIODS=[['持有2年內',0.45],['持有2–5年',0.35],['持有5–10年',0.20],['持有超過10年',0.15]];
+const G_LABELS=['(1)贈與現金\n買房','(2)簽約付現\n代購','(3)先買\n再贈與','(4)公告價舉債\n後贈與','(5)舉債付尾款\n後贈與','(6)部分付現\n部分貸款'];
+const G_FULL=[
+ '贈與現金由受贈人買房地產',
+ '由贈與人簽約付現金替受贈人購買房地產',
+ '贈與人先買房地產再贈與予受贈人',
+ '贈與人購置房地產並以法定價格(公告)舉債付尾款，之後贈與予受贈人並由受贈人承擔債務',
+ '贈與人購置房地產並舉債付尾款，之後贈與(買賣)予受贈人並由受贈人承擔債務',
+ '贈與人簽約部份付現金並由受贈人部份貸款，房地產登記於受贈人名下'];
+
+function computeGift(){
+  const mktBuy=num('g_mkt_buy'),mktSell=num('g_mkt_sell');
+  const landBuy=num('g_land_buy'),landSell=num('g_land_sell'),houseBuy=num('g_house_buy');
+  const loan=num('g_loan'),cost=num('g_cost');
+  const movFix=num('g_movfix'),movRate=MOV_RATE,movCap=MOV_CAP;
+  const donors=Math.max(num('g_donors'),1),EX=244;
+  const D4=landBuy,D5=houseBuy,buyPrice=mktBuy,I6=loan;
+  const movFee=Math.max(movFix,Math.min(mktSell*movRate,movCap));
+  const landGain=landSell>=D4?landSell-D4:0;
+  const r=landGain/D4;
+  const landInc = r>=2 ? landGain*0.4-D4*0.3 : (r>=1 ? landGain*0.3-D4*0.1 : landGain*0.2);
+  const net=[buyPrice/donors-EX,(D4+D5)/donors-EX,(D4+D5)/donors-EX,0,0,((buyPrice-I6)/donors)/buyPrice*(D4+D5)-EX];
+  const gift=net.map(n=>giftTax(n)*donors);
+  const basis=[buyPrice,D4+D5,D4+D5,D4+D5,loan,I6+(buyPrice-I6)*(D4+D5)/buyPrice];
+  const income=basis.map(b=>Math.max(mktSell-b-cost-movFee-landGain,0));
+  const periods=G_PERIODS.map(([name,rate])=>income.map((inc,i)=>{
+    const hba=inc<=0?0:inc*rate; return {hba,total:gift[i]+hba+landInc};
+  }));
+  return {net,gift,basis,income,landInc,periods};
+}
+
+function calcGift(){
+  const d=computeGift();
+  // segmented
+  const seg=$('g_seg');
+  if(!seg.dataset.built){
+    seg.innerHTML=G_PERIODS.map((p,i)=>`<button onclick="gSetPeriod(${i})">${p[0]}</button>`).join('');
+    seg.dataset.built='1';
+    $('g_strat_list').innerHTML=G_FULL.map(t=>`<li>${t}</li>`).join('');
+  }
+  [...seg.children].forEach((b,i)=>b.classList.toggle('on',i===gPeriod));
+
+  // conclusion
+  const totals=d.periods[gPeriod].map(x=>x.total);
+  const minV=Math.min(...totals), maxV=Math.max(...totals);
+  const bestI=totals.indexOf(minV);
+  $('g_best_strat').textContent=`方案 ${bestI+1}：${G_FULL[bestI]}`;
+  $('g_best_period').textContent=G_PERIODS[gPeriod][0];
+  animateValue($('g_best_total'),minV);
+  animateValue($('g_save'),maxV-minV);
+
+  // total table (all periods, heat per column)
+  let h='<thead><tr><th>方案</th>'+G_PERIODS.map(p=>`<th>${p[0]}</th>`).join('')+'</tr></thead><tbody>';
+  const colMin=G_PERIODS.map((_,pi)=>Math.min(...d.periods[pi].map(x=>x.total)));
+  const colMax=G_PERIODS.map((_,pi)=>Math.max(...d.periods[pi].map(x=>x.total)));
+  for(let i=0;i<6;i++){
+    h+=`<tr><td class="label" title="${G_FULL[i]}">方案${i+1}</td>`;
+    for(let pi=0;pi<4;pi++){
+      const v=d.periods[pi][i].total, best=Math.abs(v-colMin[pi])<0.05;
+      h+=`<td class="heat${best?' bestcell':''}" ${heatCell(v,colMin[pi],colMax[pi])}>${fmt(v)}${best?'<span class="badge-best">✓</span>':''}</td>`;
+    }
+    h+='</tr>';
+  }
+  h+='</tbody>';
+  setTable('g_total_tbl',h);
+
+  // detail
+  const rows=[
+    ['贈與稅',d.gift,false],
+    ['原始取得成本',d.basis,false],
+    ['課稅所得',d.income,false],
+    ['房地合一稅',d.periods[gPeriod].map(x=>x.hba),false],
+    ['土地增值稅',new Array(6).fill(d.landInc),false],
+    ['總稅負',d.periods[gPeriod].map(x=>x.total),true]
+  ];
+  let dh='<thead><tr><th>項目</th>'+[1,2,3,4,5,6].map(i=>`<th>方案${i}</th>`).join('')+'</tr></thead><tbody>';
+  const tMin=Math.min(...totals),tMax=Math.max(...totals);
+  rows.forEach(([lab,arr,isTot])=>{
+    dh+=`<tr class="${isTot?'totalrow':''}"><td class="label">${lab}</td>`+arr.map(v=>
+      isTot?`<td class="heat" ${heatCell(v,tMin,tMax)}>${fmt(v)}</td>`:`<td>${fmt(v)}</td>`).join('')+'</tr>';
+  });
+  dh+='</tbody>';
+  setTable('g_detail_tbl',dh);
+
+  // chart (smooth update)
+  $('g_chart_sub').textContent=`長條圖（${G_PERIODS[gPeriod][0]}）`;
+  const colors=totals.map(v=>Math.abs(v-minV)<0.05?cssVar('--good'):cssVar('--ink'));
+  if(!gChart){
+    gChart=new Chart($('g_chart'),{type:'bar',
+      data:{labels:G_LABELS,datasets:[{data:totals,backgroundColor:colors,borderRadius:7,maxBarThickness:64}]},
+      options:chartOpts(items=>G_FULL[items[0].dataIndex], c=>'總稅負 '+fmt(c.raw)+' 萬元')});
+  } else { gChart.data.datasets[0].data=totals; gChart.data.datasets[0].backgroundColor=colors; restyle(gChart); gChart.update(); }
+
+  $('g_print_meta').textContent=metaLine();
+  syncURL();
+}
+function gSetPeriod(i){gPeriod=i;calcGift();}
+
+/* =================== LEGACY =================== */
+let lChart=null,lPieGift=null,lPieInh=null;
+function computeLegacy(){
+  const D4=num('l_mkt'),E4=num('l_mkt_sell'),D5=num('l_land'),E5=num('l_land_sell'),D6=num('l_landprev');
+  const D7=num('l_house'),D8=num('l_cost');
+  const movFix=num('l_movfix'),movRate=MOV_RATE,movCap=MOV_CAP;
+  const E13=num('l_loan_sell'),spouse=num('l_spouse'),child=num('l_child'),E6=D5;
+  const D12=D5+D7,D16=1333+spouse*553+child*56+138,D17=244;
+  const movSell=Math.max(movFix,Math.min(E4*movRate,movCap));
+  const giftLand=landTax(D5,D6),deed=D7*0.06;
+  const giftNet1=D12-D17-giftLand-deed,giftTax1=giftTax(giftNet1);
+  const simpleGift=giftLand+deed+giftTax1;
+  const estate1=estateTax(D12-D16),simpleInh=estate1;
+  const sellLand=landTax(E5,E6);
+  const hbaIncomeG=E4-D12-D8-giftLand-deed-(E5-D5>=0?E5-D5:0)-movSell;
+  const hbaG=hbaIncomeG>=0?hbaIncomeG*0.45:0;
+  const sellGift=giftLand+deed+giftTax1+sellLand+hbaG;
+  const hbaIncomeI=hbaIncomeG+giftLand+deed,hbaI=hbaIncomeI>=0?hbaIncomeI*0.45:0;
+  const sellInh=estate1+sellLand+hbaI;
+  const giftNet2=D12-E13-giftLand-deed-D17,giftTax2=giftTax(giftNet2);
+  const planIncomeG=((E13>=D12)?E4-E13-movSell-(E5-D5>=0?E5-D5:0):0)-deed-D8;
+  const planHbaG=planIncomeG>=0?planIncomeG*0.45:0;
+  const planGift=giftLand+deed+giftTax2+sellLand+planHbaG;
+  const estate2=estateTax(D12-D16-E13);
+  const planIncomeI=(E13>D12)?E4-E13-movSell-(E5-D5>=0?E5-D5:0)-D8:E4-D12-movSell-(E5-D5>=0?E5-D5:0)-D8;
+  const planHbaI=planIncomeI>=0?planIncomeI*0.45:0;
+  const planInh=estate2+sellLand+planHbaI;
+  const gChildShare=(1-spouse*0.5)/(spouse+child);
+  const F33=(1-spouse*0.5)*(1/(spouse+child))*(D4-E13)+E13;
+  const F34=(spouse===0?0:(spouse*0.5+1/(spouse+child)*0.5))*(D4-E13);
+  const F35=D4-F33-F34;
+  return {D4,spouse,child,simpleGift,simpleInh,sellGift,sellInh,planGift,planInh,
+          gChildShare,F33,F34,F35};
+}
+
+function calcLegacy(){
+  const d=computeLegacy();
+  $('l_subtitle').textContent=`說明：配偶${d.spouse}人及子女${d.child}人，擬將財產傳承某特定子女　·　單位：萬元`;
+
+  // 自動計算欄位（藍底）：忠實對應 Excel 的衍生儲存格
+  const _land=num('l_land'),_house=num('l_house'),_landS=num('l_land_sell'),_houseS=num('l_house_sell');
+  $('l_landprev_sell').textContent=fmt(_land);                 // E6 = 取得土地公告現值
+  $('l_tot_mkt_buy').textContent=fmt(num('l_mkt'));            // D11
+  $('l_tot_mkt_sell').textContent=fmt(num('l_mkt_sell'));     // E11
+  $('l_tot_val_buy').textContent=fmt(_land+_house);           // D12 時價
+  $('l_tot_val_sell').textContent=fmt(_landS+_houseS);        // E12 時價
+  $('l_estate_exempt').textContent=fmt(1333+num('l_spouse')*553+num('l_child')*56+138); // D16
+
+  // conclusion
+  animateValue($('l_c_giftplan'),d.planGift);
+  animateValue($('l_c_giftsave'),d.sellGift-d.planGift);
+  animateValue($('l_c_inhplan'),d.planInh);
+  animateValue($('l_c_inhsave'),d.sellInh-d.planInh);
+  $('l_c_share').textContent=(d.F33/(d.F33+d.F34+d.F35||1)*100).toFixed(1)+'%';
+
+  // total table with heat across the 6 values
+  const all=[d.simpleGift,d.simpleInh,d.sellGift,d.sellInh,d.planGift,d.planInh];
+  const mn=Math.min(...all),mx=Math.max(...all);
+  const row=(name,g,i)=>{
+    const better=g<i?'生前贈與':(i<g?'死後繼承':'相同');
+    const gb=g<=i, ib=i<g;
+    return `<tr><td class="label">${name}</td>`+
+      `<td class="heat${gb?' bestcell':''}" ${heatCell(g,mn,mx)}>${fmt(g)}${gb?'<span class="badge-best">✓</span>':''}</td>`+
+      `<td class="heat${ib?' bestcell':''}" ${heatCell(i,mn,mx)}>${fmt(i)}${ib?'<span class="badge-best">✓</span>':''}</td>`+
+      `<td>${better}</td></tr>`;
+  };
+  setTable('l_total_tbl',
+    '<thead><tr><th>情境</th><th>生前贈與</th><th>死後繼承</th><th>較省方式</th></tr></thead><tbody>'+
+    row('單純傳承',d.simpleGift,d.simpleInh)+
+    row('考慮出售',d.sellGift,d.sellInh)+
+    row('傳承規劃＋考慮出售',d.planGift,d.planInh)+'</tbody>');
+
+  // KPI blocks
+  $('l_kpi_gift').innerHTML=kpiBlock(d.sellGift,d.planGift,1,1);
+  $('l_kpi_inh').innerHTML=kpiBlock(d.sellInh,d.planInh,d.gChildShare,d.F33/(d.F33+d.F34+d.F35||1));
+
+  // bar chart
+  const ds=[
+    {label:'生前贈與',data:[d.simpleGift,d.sellGift,d.planGift],backgroundColor:cssVar('--ink'),borderRadius:6,maxBarThickness:48},
+    {label:'死後繼承',data:[d.simpleInh,d.sellInh,d.planInh],backgroundColor:cssVar('--gold'),borderRadius:6,maxBarThickness:48}
+  ];
+  if(!lChart){
+    lChart=new Chart($('l_chart'),{type:'bar',data:{labels:['單純傳承','考慮出售','傳承規劃＋出售'],datasets:ds},
+      options:chartOpts(null,c=>c.dataset.label+' '+fmt(c.raw)+' 萬元',true)});
+  } else {
+    lChart.data.datasets[0].data=ds[0].data; lChart.data.datasets[0].backgroundColor=cssVar('--ink');
+    lChart.data.datasets[1].data=ds[1].data; lChart.data.datasets[1].backgroundColor=cssVar('--gold');
+    restyle(lChart); lChart.update();
+  }
+
+  // pies
+  lPieGift=pie('l_pie_gift',lPieGift,'生前贈與',[d.D4,0,0]);
+  lPieInh =pie('l_pie_inh', lPieInh,'死後繼承',[d.F33,d.F34,d.F35]);
+
+  $('l_print_meta').textContent=metaLine();
+  syncURL();
+}
+
+function kpiBlock(before,after,shareBefore,shareAfter){
+  const save=before-after, sd=shareAfter-shareBefore;
+  return `<div class="kpis">
+    <div class="kpi"><div class="t">考慮出售總稅負</div><div class="v">${fmt(before)}<small> 萬</small></div></div>
+    <div class="kpi"><div class="t">傳承規劃後總稅負</div><div class="v">${fmt(after)}<small> 萬</small></div></div>
+    <div class="kpi"><div class="t">降低稅負</div><div class="v ${save>=0?'good':'bad'}">${fmt(save)}<small> 萬</small></div></div>
+  </div>
+  <div class="share-note">特定子女取得比例：${(shareBefore*100).toFixed(1)}% → <b class="good">${(shareAfter*100).toFixed(1)}%</b>（${sd>=0?'+':''}${(sd*100).toFixed(1)} 個百分點）</div>`;
+}
+
+/* ---------- chart utilities ---------- */
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function chartOpts(titleFn,labelFn,legend){
+  return {responsive:true,maintainAspectRatio:false,animation:RM?false:{duration:600},
+    plugins:{legend:{display:!!legend,labels:{color:cssVar('--txt'),font:{size:12}}},
+      tooltip:{callbacks:{title:titleFn||undefined,label:labelFn}}},
+    scales:{x:{ticks:{color:cssVar('--muted'),font:{size:10}},grid:{display:false}},
+            y:{ticks:{color:cssVar('--muted')},grid:{color:cssVar('--chartgrid')}}}};
+}
+function restyle(ch){
+  ch.options.scales.x.ticks.color=cssVar('--muted');
+  ch.options.scales.y.ticks.color=cssVar('--muted');
+  ch.options.scales.y.grid.color=cssVar('--chartgrid');
+  if(ch.options.plugins.legend.labels) ch.options.plugins.legend.labels.color=cssVar('--txt');
+}
+function pie(id,inst,title,vals){
+  if(inst){ inst.data.datasets[0].data=vals; inst.options.plugins.title.color=cssVar('--txt');
+            inst.options.plugins.legend.labels.color=cssVar('--muted');
+            inst.data.datasets[0].borderColor=cssVar('--panel'); inst.update(); return inst; }
+  return new Chart($(id),{type:'doughnut',
+    data:{labels:['特定子女','配偶','其他子女'],
+      datasets:[{data:vals,backgroundColor:[cssVar('--good'),cssVar('--ink'),cssVar('--gold')],
+        borderColor:cssVar('--panel'),borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:RM?false:{duration:600},cutout:'58%',
+      plugins:{title:{display:true,text:title,color:cssVar('--txt'),font:{size:13}},
+        legend:{position:'bottom',labels:{color:cssVar('--muted'),font:{size:11},padding:10}},
+        tooltip:{callbacks:{label:c=>c.label+' '+fmt(c.raw)+' 萬元'}}}}});
+}
+function setTable(id,html){ const el=$(id); el.innerHTML=html; if(!RM){el.classList.remove('fade-in');void el.offsetWidth;el.classList.add('fade-in');} }
+
+/* ---------- defaults & URL state ---------- */
+const DEFAULTS={
+  g_mkt_buy:10000,g_mkt_sell:10000,g_land_buy:2500,g_land_sell:3000,g_house_buy:1000,g_house_sell:1000,
+  g_loan:8000,g_cost:200,g_movfix:300,g_donors:2,
+  l_mkt:10000,l_mkt_sell:10000,l_land:2000,l_land_sell:2000,l_landprev:800,l_house:1000,l_house_sell:1000,
+  l_cost:0,l_movfix:300,l_loan_sell:7000,l_spouse:1,l_child:1
+};
+const ALL_IDS=Object.keys(DEFAULTS);
+function setDefaults(){ ALL_IDS.forEach(k=>{const el=$(k);if(el)el.value=DEFAULTS[k];}); }
+function resetInputs(which){
+  ALL_IDS.filter(k=>k.startsWith(which==='gift'?'g_':'l_')).forEach(k=>$(k).value=DEFAULTS[k]);
+  which==='gift'?calcGift():calcLegacy();
+  toast('已回復預設值');
+}
+let urlTimer=null;
+function syncURL(){
+  clearTimeout(urlTimer);
+  urlTimer=setTimeout(()=>{
+    const p=new URLSearchParams();
+    p.set('v',currentView==='calc-gift'?'gift':currentView==='calc-legacy'?'legacy':'home');
+    p.set('t',theme());
+    if(currentView==='calc-gift') p.set('gp',gPeriod);
+    ALL_IDS.forEach(k=>{const v=$(k).value; if(parseFloat(v)!==DEFAULTS[k]) p.set(k,v);});
+    history.replaceState(null,'','#'+p.toString());
+  },250);
+}
+function readURL(){
+  const h=location.hash.replace(/^#/,''); if(!h) return null;
+  const p=new URLSearchParams(h);
+  if(p.get('t')) document.documentElement.setAttribute('data-theme',p.get('t'));
+  ALL_IDS.forEach(k=>{ if(p.has(k)) $(k).value=p.get(k); });
+  if(p.get('gp')!=null) gPeriod=parseInt(p.get('gp'))||0;
+  return p.get('v')||'home';
+}
+function shareLink(){
+  syncURL();
+  setTimeout(()=>{
+    const url=location.href;
+    if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>toast('已複製分享連結'),()=>toast('連結：'+url)); }
+    else toast('連結：'+url);
+  },300);
+}
+function exportPDF(){
+  document.querySelectorAll('details.info').forEach(d=>d.open=true);
+  setTimeout(()=>window.print(),200);
+}
+function metaLine(){
+  const dt=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+  return `試算日期：${dt}　·　單位：萬元　·　齊名揚老師編著 114.11 版`;
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+
+/* ---------- init ---------- */
+setDefaults();
+const savedTheme=load('tax_theme'); if(savedTheme) document.documentElement.setAttribute('data-theme',savedTheme);
+const startView=readURL();
+applyTheme(theme());
+ALL_IDS.forEach(k=>$(k).addEventListener('input',()=>{ k.startsWith('g_')?calcGift():calcLegacy(); }));
+if(startView==='gift') go('calc-gift');
+else if(startView==='legacy') go('calc-legacy');
+window.addEventListener('beforeprint',()=>document.querySelectorAll('details.info').forEach(d=>d.open=true));
+</script>
+</body>
+</html>

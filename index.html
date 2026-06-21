@@ -46,7 +46,7 @@
   a{color:inherit}
 
   /* top bar */
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;
+  .topbar{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin-bottom:18px;
           padding:10px 0;border-bottom:1px solid var(--line)}
   .brand{display:flex;align-items:baseline;gap:12px}
   .brand .name{font-size:14px;letter-spacing:3px;color:var(--gold);font-weight:700}
@@ -116,6 +116,7 @@
   .xinput h3{margin-bottom:12px}
   .x-hint{font-weight:400;font-size:11px;color:var(--soft);margin-left:8px}
   .xtable{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed}
+  .xtable .c-cat{width:78px} .xtable .c-v{width:29%}
   .xtable th,.xtable td{border:1px solid var(--line2);padding:0;text-align:center}
   .xtable thead th{background:var(--panel2);color:var(--ink);font-weight:700;padding:9px 8px;font-size:12.5px}
   .xtable td.cat{background:var(--panel2);color:var(--txt);font-weight:800;font-size:12.5px;width:78px;letter-spacing:1px}
@@ -237,6 +238,68 @@
     *{animation-duration:.001ms!important;transition-duration:.001ms!important}
   }
 
+  /* ---------- MOBILE PORTRAIT (primary) ---------- */
+  @media(max-width:640px){
+    .wrap{padding:12px 12px 48px}
+    .topbar{margin-bottom:12px;padding:8px 0;flex-wrap:wrap}
+    .controls{gap:6px;flex-wrap:wrap}
+    .btn{padding:8px 11px;font-size:12px}
+    h1{font-size:21px;margin-top:4px}
+    .sub{font-size:12.5px;margin-bottom:16px}
+    /* home */
+    .home-hero{margin:14px 0 22px}
+    .hh-eyebrow{font-size:11px;letter-spacing:1.5px}
+    .hh-eyebrow .hh-line{width:18px}
+    .hh-title{font-size:25px;letter-spacing:.5px}
+    .hh-sub{font-size:13px}
+    .cards{gap:16px}
+    .card{min-height:auto;padding:22px 18px 20px;border-radius:18px}
+    .card-wm{font-size:140px;bottom:-26px;right:-6px}
+    .card-ic{width:52px;height:52px;border-radius:15px}
+    .card-ic svg{width:27px;height:27px}
+    .card-title{font-size:22px}
+    .card-desc{font-size:13px}
+    /* generic blocks */
+    .block{padding:14px}
+    .block h3{font-size:14px}
+    .calcbody,.results{gap:15px}
+    .conclusion{padding:16px;border-left-width:4px}
+    .conclusion .big{font-size:18px;line-height:1.35}
+    .conclusion .line{font-size:12.5px;line-height:1.7}
+    .conclusion .badge{font-size:10px;padding:3px 9px}
+    /* Excel-style input table: shrink category strip, allow label wrap */
+    .xtable{font-size:12px}
+    .xtable .c-cat{width:24px}
+    .xtable .c-v{width:31%}
+    .xtable thead th{padding:7px 4px;font-size:10.5px}
+    .xtable td.cat{width:24px;padding:3px 0;font-size:11px;letter-spacing:1px;
+        writing-mode:vertical-rl;text-orientation:upright}
+    .xtable td.rl{padding:7px 7px;font-size:11px;white-space:normal;line-height:1.3}
+    .xtable td.xin input{padding:9px 7px;font-size:13.5px}
+    .xtable td.xderiv{padding:8px 7px;font-size:12px}
+    .xtable td.xlock{font-size:9.5px;padding:6px 4px;line-height:1.3}
+    .x-hint{display:block;margin-left:0;margin-top:5px}
+    .xfoot{gap:10px}
+    .note-inline{font-size:11px}
+    /* result tables scroll horizontally instead of squeezing */
+    .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    table{font-size:12px}
+    th,td{padding:7px 8px}
+    .totalrow td{font-size:12.5px}
+    /* charts + kpis */
+    .chartbox{height:250px}
+    .kpis{grid-template-columns:1fr;gap:10px}
+    .kpi{padding:13px 14px}
+    .kpi .v{font-size:21px}
+    .seg{width:100%}
+    .seg button{flex:1;padding:7px 6px;font-size:11.5px}
+  }
+  @media(max-width:380px){
+    .xtable td.rl{font-size:10.5px;padding:6px 5px}
+    .card-title{font-size:20px}
+    .hh-title{font-size:22px}
+  }
+
   /* ---------- PRINT ---------- */
   @media print{
     @page{margin:14mm}
@@ -262,10 +325,6 @@
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <div class="brand">
-      <span class="name">齊名揚老師編著</span>
-      <span class="ver">不動產稅賦分析 · 114.11 版</span>
-    </div>
     <div class="controls">
       <button class="btn" id="shareBtn" onclick="shareLink()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
@@ -329,7 +388,7 @@
       <div class="block xinput">
         <h3><span class="dot"></span>輸入條件<span class="x-hint">白底＝可輸入｜灰底＝法定固定值｜「—」不適用</span></h3>
         <div class="tbl-wrap"><table class="xtable">
-          <colgroup><col style="width:78px"><col><col style="width:29%"><col style="width:29%"></colgroup>
+          <colgroup><col class="c-cat"><col><col class="c-v"><col class="c-v"></colgroup>
           <thead><tr><th></th><th>項目（萬元）</th><th>取得</th><th>出售</th></tr></thead>
           <tbody>
             <tr><td class="cat" rowspan="3">房地產</td><td class="rl">市價</td>
@@ -401,7 +460,7 @@
       <div class="block xinput">
         <h3><span class="dot"></span>輸入條件<span class="x-hint">白底＝可輸入｜藍底＝自動計算｜灰底＝法定固定值</span></h3>
         <div class="tbl-wrap"><table class="xtable">
-          <colgroup><col style="width:78px"><col><col style="width:29%"><col style="width:29%"></colgroup>
+          <colgroup><col class="c-cat"><col><col class="c-v"><col class="c-v"></colgroup>
           <thead><tr><th></th><th>項目（萬元）</th><th>贈與或繼承</th><th>出售</th></tr></thead>
           <tbody>
             <tr><td class="cat" rowspan="6">房地產</td><td class="rl">市價</td>
